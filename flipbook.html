@@ -154,7 +154,7 @@ body{
   /* ============ page geometry ============ */
   var W = 720, H = 480;
   var GROUND = 404;          // the line the chase runs on
-  var ROAD   = 292;          // the far-away road the car uses
+  var ROAD   = 258;          // the far-away road the car uses
   var FRAMES = 30;
 
   var DARK  = "#2f2e2a";
@@ -294,7 +294,7 @@ body{
   function hills(scroll){
     var pts = [], x, y;
     for(x = -60; x <= W + 60; x += 36){
-      y = 250 - 28 * Math.sin((x + scroll) / 118) - 12 * Math.sin((x + scroll) / 51 + 1.7);
+      y = 216 - 26 * Math.sin((x + scroll) / 118) - 11 * Math.sin((x + scroll) / 51 + 1.7);
       pts.push([x, y]);
     }
     return ink(pts, { w: 1.6, amp: 1.4, col: FAINT, alpha: 0.85, passes: 2 });
@@ -327,12 +327,12 @@ body{
   }
 
   function midground(scroll){
-    var s = "", spacing = 196, off = ((scroll % spacing) + spacing) % spacing, x, k, base, h, i, fx;
+    var s = "", spacing = 300, off = ((scroll % spacing) + spacing) % spacing, x, k, base, h, i, fx;
     for(x = -spacing - off; x < W + spacing; x += spacing){
       k = Math.round((x + scroll) / spacing);
-      base = 358 + hash(k + 3) * 8;
+      base = 342 + hash(k + 3) * 8;
       if(hash(k) > 0.45){                                   // a scrubby tree
-        h = 30 + hash(k + 5) * 20;
+        h = 44 + hash(k + 5) * 22;
         s += ink([[x, base], [x + 2, base - h * 0.6], [x - 1, base - h]], { w: 1.9, amp: 1.2, col: SOFT });
         s += blob(x, base - h - 10, 15 + hash(k + 7) * 6, 0.78, 2.3, { w: 1.5, col: SOFT, alpha: 0.8, fill: PAPER });
         s += ink([[x - 1, base - h * 0.72], [x - 15, base - h * 0.94]], { w: 1.4, amp: 1, passes: 1, col: SOFT });
@@ -348,10 +348,17 @@ body{
   }
 
   function ground(scroll){
-    var s = "", pts = [], x, spacing = 118, off, k, gx, gh;
+    var s = "", pts = [], x, spacing = 210, off, k, gx, gh;
     for(x = -40; x <= W + 40; x += 44){ pts.push([x, GROUND + Math.sin((x + scroll) / 90) * 2.5]); }
     s += ink(pts, { w: 2.4, amp: 1.4 });
     s += hatch(-10, GROUND + 6, W + 20, 32, 40, 0.9, { col: SOFT, alpha: 0.4 });
+    for(x = 0; x < 8; x++){
+      k = x * 163;
+      gx = ((((-scroll * 1.25 + k) % (W + 300)) + (W + 300)) % (W + 300)) - 150;
+      gh = GROUND + 9 + hash(x + 31) * 24;
+      s += ink([[gx, gh], [gx + 46 + hash(x + 41) * 54, gh]],
+               { w: 1.3, amp: 0.6, passes: 1, col: SOFT, alpha: 0.55 });
+    }
     off = ((scroll % spacing) + spacing) % spacing;
     for(x = -spacing - off; x < W + spacing; x += spacing){   // grass whipping past
       k = Math.round((x + scroll) / spacing);
@@ -366,34 +373,35 @@ body{
   /* ============ the chase ============ */
 
   // hip -> knee -> paw, foot tracing an ellipse: on the ground half the cycle, lifted the other half
-  function leg(hx, hy, th, reach, lift, kneeLean, col, wide){
-    var fx = hx + Math.cos(th) * reach,
+  function leg(hx, hy, th, reach, lift, kneeLean, col, wide, bias){
+    var fx = hx + (bias || 0) + Math.cos(th) * reach,
         fy = GROUND - Math.max(0, Math.sin(th)) * lift,
         mx = (hx + fx) / 2 + kneeLean, my = (hy + fy) / 2 + 3;
     return ink([[hx, hy], [mx, my], [fx, fy]], { w: wide, amp: 1.0, col: col }) +
            ink([[fx - 3.5, fy], [fx + 4, fy + 0.5]], { w: wide + 0.4, amp: 0.6, passes: 1, col: col });
   }
 
-  function cat(x, ph){
-    var bob  = Math.sin(ph * Math.PI * 4) * 3.6,
-        by   = GROUND - 58 + bob,          // body centre
+  function cat(x, ph, reach){
+    reach = reach || 0;
+    var bob  = Math.sin(ph * Math.PI * 4) * 3.6 * (1 - reach * 0.6),
+        by   = GROUND - 58 + bob + reach * 7,      // he flattens out as he lunges
         tw   = Math.sin(ph * Math.PI * 2 + 1.2),
-        lunge = Math.sin(ph * Math.PI * 2) > 0.55,
-        s = "", hx = x + 64, hy = by - 20, i, a;
+        lunge = reach > 0.4 || Math.sin(ph * Math.PI * 2) > 0.55,
+        s = "", hx = x + 64 + reach * 10, hy = by - 20 - reach * 3, i, a;
 
     var th = ph * Math.PI * 2;
     // tail, whipping behind
     s += ink([[x - 60, by - 2], [x - 86, by - 16 - tw * 10], [x - 108, by - 34 - tw * 16], [x - 114, by - 56 - tw * 10]],
              { w: 2.6, amp: 1.5 });
     // far legs first, lighter, so they sit behind the body. a gallop: hinds together, then fronts
-    s += leg(x - 36, by + 12, th + 0.35 * Math.PI, 11, 13, -6, MID, 2.0);
-    s += leg(x + 26, by + 13, th + 1.25 * Math.PI, 11, 12,  6, MID, 2.0);
+    s += leg(x - 36, by + 12, th + 0.35 * Math.PI, 11, 13, -6, MID, 2.0, -8);
+    s += leg(x + 26, by + 13, th + 1.25 * Math.PI, 11, 12,  6, MID, 2.0, 8 + reach * 14);
 
     // body
     s += ink([[x - 62, by + 2], [x - 56, by - 18], [x - 30, by - 27], [x + 6, by - 29],
               [x + 34, by - 23], [x + 48, by - 9], [x + 46, by + 10], [x + 16, by + 19],
               [x - 20, by + 21], [x - 50, by + 16]],
-             { w: 2.5, amp: 1.5, closed: true, fill: PAPER });
+             { w: 2.5, amp: 0.9, closed: true, fill: PAPER });
     // stripes over the back
     for(i = 0; i < 3; i++){
       a = x - 22 + i * 19;
@@ -402,11 +410,11 @@ body{
     s += hatch(x - 40, by + 6, 74, 12, 7, 0.9, { col: SOFT, alpha: 0.5 });
 
     // near legs
-    s += leg(x - 44, by + 11, th,             13, 15, -7, DARK, 2.5);
-    s += leg(x + 34, by + 12, th + Math.PI,   13, 14,  7, DARK, 2.5);
+    s += leg(x - 44, by + 11, th,             13, 15, -7, DARK, 2.5, -10);
+    s += leg(x + 34, by + 12, th + Math.PI,   13, 14,  7, DARK, 2.5, 10 + reach * 24);
 
     // head, ears pinned back, eyes wide
-    s += blob(hx, hy, 21, 0.95, 1.6, { w: 2.4, fill: PAPER });
+    s += blob(hx, hy, 21, 0.95, 0.9, { w: 2.4, fill: PAPER });
     s += ink([[hx - 16, hy - 12], [hx - 22, hy - 30], [hx - 2, hy - 20]], { w: 2.1, amp: 1.2, closed: true, fill: PAPER });
     s += ink([[hx + 4, hy - 20], [hx + 6, hy - 34], [hx + 18, hy - 15]], { w: 2.1, amp: 1.2, closed: true, fill: PAPER });
     s += blob(hx + 7, hy - 5, 5.2, 1.05, 0.8, { w: 1.9, passes: 1 });                       // eye
@@ -441,7 +449,7 @@ body{
     // body + head in one gesture
     s += ink([[x - 24, by + 2], [x - 19, by - 9], [x - 3, by - 13], [x + 13, by - 11],
               [x + 25, by - 3], [x + 20, by + 8], [x - 6, by + 11], [x - 20, by + 9]],
-             { w: 2.1, amp: 1.3, closed: true, fill: PAPER });
+             { w: 2.1, amp: 0.8, closed: true, fill: PAPER });
     s += blob(x + 4, by - 14, 7, 0.95, 1.1, { w: 1.8, fill: PAPER, passes: 1 });   // ear
     s += blob(x + 17, by - 5, 1.9, 1, 0.5, { w: 2.1, passes: 1, fill: DARK });     // eye
     s += ink([[x + 24, by - 2], [x + 31, by + 1]], { w: 1.6, amp: 0.8, passes: 1 });// nose
@@ -480,23 +488,28 @@ body{
     rnd = mk(1013 + i * 977);
     var t = i / FRAMES,
         ph = t * 5,                                   // five strides across the book
-        beat = Math.sin(t * Math.PI * 2),             // the gap opens and closes
-        catX = 206 + beat * 15,
-        mouseX = 456 - beat * 22,
+        // the cat closes the whole way through the book instead of bobbing in place:
+        // a sine gap ends where it started, so the chase went nowhere.
+        e = t < 0.88 ? t / 0.88 : 1,
+        close = e * e * (3 - 2 * e),                  // slow at first, then a rush
+        gap = 430 - 260 * close,                      // 430px apart down to 170px
+        burst = t > 0.88 ? (t - 0.88) / 0.12 : 0,     // the mouse's last-second escape
+        mouseX = 486 + burst * 70,
+        catX = mouseX - gap - burst * 35,
         s = "";
 
     s += sun(t);
-    s += clouds(-t * 46);
-    s += birds(-t * 120);
-    s += hills(-t * 96);
-    s += road(-t * 150);
+    s += clouds(-t * 150);
+    s += birds(-t * 300);
+    s += hills(-t * 400);
+    s += road(-t * 460);
     s += car(t);
-    s += midground(-t * 300);
-    s += ground(-t * 780);
-    s += speedLines(catX - 112, GROUND - 74, 3, 30, 13);
-    s += speedLines(mouseX - 40, GROUND - 30, 2, 20, 10);
+    s += midground(-t * 900);
+    s += ground(-t * 1500);
+    s += speedLines(catX - 112, GROUND - 84, 4, 30 + close * 46, 15);
+    s += speedLines(mouseX - 40, GROUND - 34, 3, 22 + close * 30, 11);
     s += dust(catX, ph);
-    s += cat(catX, ph);
+    s += cat(catX, ph, close > 0.8 ? (close - 0.8) / 0.2 : 0);
     s += mouse(mouseX, ph * 1.8, (i % 7) === 2 || (i % 7) === 3);
     // running head, scrawled once per page
     s += '<text x="34" y="46" font-family="Shantell Sans, Segoe Print, Bradley Hand, cursive" font-size="17" fill="' + SOFT +
@@ -520,7 +533,7 @@ body{
 
   var slow = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches,
       MS = slow ? 330 : 82,           // ~12 pages a second when thumbed at speed
-      HOLD = slow ? 500 : 190,        // a beat on the last page before the thumb re-grips
+      HOLD = slow ? 700 : 430,        // a beat on the last page before the thumb re-grips
       RIGHT_MAX = window.innerWidth < 520 ? 34 : 52,
       cur = 0, acc = 0, last = 0;
 
