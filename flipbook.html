@@ -508,7 +508,7 @@ body{
     rnd = mk(1013 + fr * 977);
     var sc    = SCROLL[fr],
         speed = speedAt(fr),
-        ph    = sc / 118,                                   // stride tied to distance, not time,
+        ph    = sc / 210,                                   // stride tied to distance, not time,
                                                             // so he takes shorter steps uphill
         hxp   = HOLE_W - sc,                                // the hole, arriving from the right
         catX  = catAt(fr),
@@ -542,7 +542,7 @@ body{
       FOOT = terrainY(mx + sc);
       ang = Math.atan(slopeAt(mx + sc)) * 57.3;
       s += '<g transform="rotate(' + f(ang) + ' ' + f(mx) + ' ' + f(FOOT) + ')">' +
-           mouse(mx, ph * 1.8, fr > 40 && (fr % 23) < 3, dive) + '</g>';
+           mouse(mx, ph * 1.35, fr > 40 && (fr % 23) < 3, dive) + '</g>';
     }
 
     // the rock is drawn over the mouse, so he vanishes into it
